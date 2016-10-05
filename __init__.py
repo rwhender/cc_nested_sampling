@@ -9,8 +9,7 @@ Created on Wed Aug 12 11:21:41 2015
 from numpy import random
 import numpy as np
 from operator import attrgetter
-from copy import deepcopy
-from copy import copy
+from copy import deepcopy, copy
 
 
 def mh(samples, L, idx_min, lhood):
@@ -124,6 +123,25 @@ class Sample:
         self.logL = lhood.evaluate(self.theta)
         self.logWt = -np.Inf
 
+    # Define ordering operations, so that samples can be compared by logL
+    def __lt__(self, x):
+        return self.logL < x.logL
+
+    def __le__(self, x):
+        return self.logL <= x.logL
+
+    def __eq__(self, x):
+        return self.logL == x.logL
+
+    def __ne__(self, x):
+        return self.logL != x.logL
+
+    def __gt__(self, x):
+        return self.logL > x.logL
+
+    def __ge__(self, x):
+        return self.logL >= x.logL
+
 
 class NS:
     """
@@ -160,6 +178,9 @@ class NS:
         self.verbose = verbose
 
     def run(self):
+        return self.run_serial()
+
+    def run_serial(self):
         """Run nested sampling algorithm
 
         Returns
@@ -181,7 +202,8 @@ class NS:
         iterate = True
         self.count = 0
         while iterate:
-            min_sample = min(live_samples, key=attrgetter('logL'))
+            # min_sample = min(live_samples, key=attrgetter('logL'))
+            min_sample = min(live_samples)
             logL_min = min_sample.logL
             if self.verbose:
                 print("P =", self.P, " count =", self.count, " L =", logL_min)
