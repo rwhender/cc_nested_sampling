@@ -4,12 +4,29 @@ Created on Wed Aug 12 11:21:41 2015
 
 @title: Nested sampling
 @author: Wesley
+
+Nested sampling
+Copyright (C) 2015  R. Wesley Henderson
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the Lesser GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+Lesser GNU General Public License for more details.
+
+You should have received a copy of the Lesser GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 from numpy import random
 import numpy as np
 from operator import attrgetter
 from copy import deepcopy, copy
+from numpy.matlib import repmat
 
 
 def mh(samples, L, idx_min, lhood):
@@ -32,12 +49,13 @@ def mh(samples, L, idx_min, lhood):
     sample : Sample object
         updated sample
     """
+    random.seed()
     N = len(samples)
     clone_idx = random.randint(N)
     current = deepcopy(samples[clone_idx])
     P = (current.theta).size
     step = 0.01
-    T = 1000
+    T = 2000
     accept = 0
     reject = 0
 
@@ -79,12 +97,13 @@ def mh_oat(samples, L, idx_min, lhood):
     sample : Sample object
         updated sample
     """
+    random.seed()
     N = len(samples)
     clone_idx = random.randint(N)
     current = deepcopy(samples[clone_idx])
     P = (current.theta).size
     step = 0.01 * np.ones(current.theta.shape)
-    T = 200
+    T = 1000
     accept = np.zeros(current.theta.shape)
     reject = np.zeros(current.theta.shape)
     trial = deepcopy(current.theta)
@@ -142,6 +161,11 @@ class Sample:
     def __ge__(self, x):
         return self.logL >= x.logL
 
+    # Define a distance function to allow for clustering
+    def distance(self, x):
+        diff = self.theta - x.theta
+        return np.sqrt(diff.dot(diff))
+
 
 class NS:
     """
@@ -178,6 +202,19 @@ class NS:
         self.verbose = verbose
 
     def run(self):
+        """Run nested sampling algorithm
+
+        Returns
+        -------
+        logZ : float
+            esimated log-evidence
+        dead_samples : list of Samples
+            list of discarded Sample objects
+        H : float
+            estimated information
+        count : int
+            number of likelihood constraint iterations
+        """
         return self.run_serial()
 
     def run_serial(self):
@@ -223,7 +260,7 @@ class NS:
             self.dead_samples.append(deepcopy(min_sample))
             log_width -= 1/self.N
             self.count += 1
-            if self.count > self.MIN and self.count > 2 * self.H * self.N:
+            if self.count > self.MIN and self.count > 3 * self.H * self.N:
                 iterate = False
             elif self.count >= self.MAX:
                 iterate = False
@@ -337,3 +374,48 @@ class Loglikelihood:
             evaluated log-likelihood
         """
         return 0.0
+
+
+def importance_resampling(samples):
+    """
+    Resample weighted samples and return representative samples
+
+    Parameters
+    ----------
+    samples : list
+        A list of Sample instances. The logWt values are used to resample.
+
+    Returns
+    -------
+    rep_samples : list
+        A list of reweighted Sample instances, containing the same number of
+        samples as the input
+    """
+    samples = deepcopy(samples)
+    weighted_samples = sorted(samples, key=attrgetter('logWt'))
+    max_log_w = samples[-1].logWt
+    log_w = [sample.logWt - max_log_w for sample in weighted_samples]
+    log_w = np.array(log_w, dtype=np.float64)
+    w = np.exp(log_w)
+    J = len(w)
+    W = J * (w / w.sum())
+    N = np.zeros((J, 1))
+    u = random.rand(1)
+    k = np.arange(0, J)[np.newaxis]
+    S1 = np.hstack((0, W[:-1].cumsum()))[np.newaxis].T
+    S2 = W.cumsum()[np.newaxis].T
+    um = repmat(u, J, J)
+    km = repmat(k, J, 1)
+    S1m = repmat(S1, 1, J)
+    S2m = repmat(S2, 1, J)
+    Nm = ((um + km - S1m > np.zeros((J, J))).astype(np.int) -
+          (um + km - S2m > np.zeros((J, J))).astype(np.int))
+    N = Nm.sum(1)
+    rep_samples = []
+    for j in range(J):
+        if N[j] > 0:
+            sample = weighted_samples[j]
+            sample.logWt = 0.0
+            for i in range(N[j]):
+                rep_samples.append(sample)
+    return rep_samples
