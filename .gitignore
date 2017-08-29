@@ -1,2 +1,4 @@
 __pycache__/
 cc_nested_sampling.egg-info/
+build/
+dist/
