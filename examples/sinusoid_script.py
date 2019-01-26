@@ -21,9 +21,9 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from nested_sampling import NS, mh_oat, Loglikelihood
-from nested_sampling.combined_chain_ns import ParallelNS
-from nested_sampling.parallel_replace_ns import PReplaceNS
+from cc_nested_sampling import NS, mh_oat, Loglikelihood
+from cc_nested_sampling.combined_chain_ns import ParallelNS
+from cc_nested_sampling.parallel_replace_ns import PReplaceNS
 from numpy import matlib
 import numpy as np
 import dill
@@ -336,7 +336,7 @@ def main():
 
 if __name__ == "__main__":
     # main()
-    logZs, Hs = parallel_test(20)
+    # logZs, Hs = parallel_test(20)
     # logZs, Hs = serial_test(20)
-    evidence_plotter(logZs)
-    # pass
+    # evidence_plotter(logZs)
+    pass
