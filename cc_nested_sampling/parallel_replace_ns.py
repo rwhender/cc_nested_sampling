@@ -22,7 +22,7 @@ You should have received a copy of the Lesser GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from nested_sampling import NS, mh, Sample
+from . import NS, mh, Sample
 from multiprocessing import Pool
 import numpy as np
 from copy import deepcopy
