@@ -135,7 +135,7 @@ class PReplaceNS(NS):
                 self.dead_samples.append(deepcopy(min_samples))
                 log_width += Elogt
                 self.count += 1
-                if self.count > self.MIN and self.count > (2 * self.H *
+                if self.count > self.MIN and self.count > (3 * self.H *
                                                            self.N / self.R):
                     iterate = False
                 elif self.count >= self.MAX:
